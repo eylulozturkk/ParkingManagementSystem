@@ -1,33 +1,170 @@
-using Microsoft.AspNetCore;
+using Autofac.Extensions.DependencyInjection;
+using Autofac;
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using ParkingManagementSystem.BL.Interface;
+using ParkingManagementSystem.BL.Services;
+using ParkingManagementSystem.DAL.Context;
+using ParkingManagementSystem.DAL.GenericRepository;
+using ParkingManagementSystem.DAL.UOW;
+using Swashbuckle.AspNetCore.Swagger;
+using System.Reflection;
+using Autofac.Core;
 
-namespace ParkingManagementSystem.API
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddResponseCompression();
+builder.Services.AddDbContext<DataContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
+    sqlOptions => sqlOptions.EnableRetryOnFailure(
+        maxRetryCount: 5,        
+        maxRetryDelay: TimeSpan.FromSeconds(10), 
+        errorNumbersToAdd: null) // Belirli hata numaralarý üzerinde deneme yapar (boþ býrakýrsak tüm hatalarda yeniden dener)
+    ));
+
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
+builder.Services.AddSingleton<IAuditService, AuditService>();
+
+// Liveness - Health Checks
+builder.Services.AddHealthChecks();
+
+// CORS
+builder.Services.AddCors(o => o.AddPolicy("Phantom-policy", b =>
 {
-    public static class Program
+    b.AllowAnyOrigin()
+     .AllowAnyMethod()
+     .AllowAnyHeader();
+}));
+
+// API Versioning
+builder.Services.AddApiVersioning(options =>
+{
+    options.ReportApiVersions = true;
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+});
+
+builder.Services.AddVersionedApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
+// Swagger Configuration
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("Back-End", new OpenApiInfo
     {
+        Version = "1.0",
+        Title = "Back End Endpoints",
+        Description = "ParkManagementSystem-MS",
+        Contact = new OpenApiContact { Name = "EylulParkSystem" }
+    });
 
-        public static int Main(string[] args)
+    c.SwaggerDoc("Front-End", new OpenApiInfo
+    {
+        Title = "Front End Endpoints",
+        Description = "ParkManagementSystem-MS",
+        Contact = new OpenApiContact { Name = "EylulParkSystem" }
+    });
+
+    c.SwaggerDoc("All", new OpenApiInfo
+    {
+        Title = "Park Management System Endpoints",
+        Description = "ParkManagementSystem-MS",
+        Contact = new OpenApiContact { Name = "EylulParkSystem" }
+    });
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
+
+    c.AddFluentValidationRules();
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter JWT with Bearer into field",
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
         {
-            Log.Logger = LoggerHelper.CreateLoggerConfiguration().CreateLogger();
-            try
+            new OpenApiSecurityScheme
             {
-                CreateWebHostBuilder(args).Build().Run();
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                Log.Fatal(ex, "Host terminated unexpectedly");
-                return 1;
-            }
-            finally
-            {
-                Log.CloseAndFlush();
-            }
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = ParameterLocation.Header
+            },
+            new List<string>()
         }
+    });
+});
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
-    }
+// Autofac Dependency Injection
+builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
+builder.Host.ConfigureContainer<ContainerBuilder>(builder =>
+{
+    builder.RegisterGeneric(typeof(GenericRepository<>)).As(typeof(IGenericRepository<>));
+
+    var ibu = typeof(IBusinessUnit);
+    ibu.Assembly.GetExportedTypes()
+        .Select(t => new { Type = t, Interface = t.GetInterfaces().FirstOrDefault(i => i != ibu && ibu.IsAssignableFrom(i) && !i.IsGenericType) })
+        .Where(t => t.Interface != null && t.Type.IsClass)
+        .ToList()
+        .ForEach(t => builder.RegisterType(t.Type).As(t.Interface));
+});
+
+var app = builder.Build();
+
+app.UseResponseCompression();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseHsts();
 }
 
+// Liveness - Health Checks
+app.UseHealthChecks("/health-check");
+
+app.UseHttpsRedirection();
+app.UseRouting();
+
+// CORS
+app.UseCors("Phantom-policy");
+
+app.UseCookiePolicy(new CookiePolicyOptions
+{
+    HttpOnly = Microsoft.AspNetCore.CookiePolicy.HttpOnlyPolicy.Always,
+    Secure = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always
+});
+
+
+// Swagger UI
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.DocumentTitle = "Park Management System";
+    c.SwaggerEndpoint("/swagger/All/swagger.json", "Park Management System All API Endpoints");
+    c.SwaggerEndpoint("/swagger/Back-End/swagger.json", "Park Management System Backend API Endpoints v1");
+    c.SwaggerEndpoint("/swagger/Front-End/swagger.json", "Park Management System FrontEnd API Endpoints");
+    c.RoutePrefix = string.Empty;
+});
+
+app.MapControllers();
+
+app.Run();

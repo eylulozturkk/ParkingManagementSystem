@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using ParkingManagementSystem.DAL.Entity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,8 +10,10 @@ namespace ParkingManagementSystem.DAL.Context
 {
     public interface IDataContext
     {
-        DbSet<Provider> Provider { get; set; }
-        DbSet<Template> Template { get; set; }
-        DbSet<Setting> Settings { get; set; }
+        DbSet<Vehicle> Vehicles { get; set; }
+        DbSet<ParkingSpot> ParkingSpots { get; set; }
+        DbSet<PriceParkingSpotMapping> PriceParkingSpotMappings { get; set; }
+        DbSet<VehicleParkingSpotMapping> VehicleParkingSpotMappings { get; set; }
+
     }
 }

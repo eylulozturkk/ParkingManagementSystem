@@ -11,7 +11,7 @@ namespace ParkingManagementSystem.DAL.Entity
 {
     [Index(nameof(IsDeleted))]
 
-    public class BaseEntity : CacheableEntity
+    public class BaseEntity 
     {
         public BaseEntity()
         {

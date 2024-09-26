@@ -1,12 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.EntityFrameworkCore;
 using ParkingManagementSystem.DAL.Entity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ParkingManagementSystem.DAL.Context
 {
@@ -36,17 +31,15 @@ namespace ParkingManagementSystem.DAL.Context
             }
 
             base.OnModelCreating(modelBuilder);
-            modelBuilder.Entity<Setting>().HasIndex(x => x.Name).IsUnique();
-            modelBuilder.Entity<Template>().HasIndex(x => x.TemplateTypeId).IsUnique();
-
+            modelBuilder.Entity<ParkingSpot>().HasIndex(x => x.Name).IsUnique();
         }
 
         #region DbSets
 
-        public DbSet<Provider> Provider { get; set; }
-        public DbSet<Template> Template { get; set; }
-        public DbSet<Setting> Settings { get; set; }
-        public DbSet<Audit> Audits { get; set; }
+        public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<ParkingSpot> ParkingSpots { get; set; }
+        public DbSet<VehicleParkingSpotMapping> VehicleParkingSpotMappings { get; set; }
+        public DbSet<PriceParkingSpotMapping> PriceParkingSpotMappings { get; set; }
 
         #endregion
 
