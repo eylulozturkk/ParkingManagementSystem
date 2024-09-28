@@ -3,11 +3,6 @@ using ParkingManagementSystem.DAL.Context;
 using ParkingManagementSystem.DAL.Dto;
 using ParkingManagementSystem.DAL.Entity;
 using ParkingManagementSystem.DAL.GenericRepository;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ParkingManagementSystem.DAL.UOW
 {

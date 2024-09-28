@@ -12,6 +12,10 @@ using ParkingManagementSystem.DAL.UOW;
 using Swashbuckle.AspNetCore.Swagger;
 using System.Reflection;
 using Autofac.Core;
+using Microsoft.AspNetCore.Mvc.Controllers;
+using ParkingManagementSystem.API.Swagger.CustomAttributes;
+using ParkingManagementSystem.API.Swagger.Filters;
+using ParkingManagementSystem.API.Swagger.OperationFilters;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +28,7 @@ builder.Services.AddDbContext<DataContext>(options =>
         errorNumbersToAdd: null) // Belirli hata numaralarý üzerinde deneme yapar (boþ býrakýrsak tüm hatalarda yeniden dener)
     ));
 
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+builder.Services.AddAutoMapper(typeof(ParkingManagementSystem.BL.Mapper.AutoMapperProfile));
 builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 builder.Services.AddSingleton<IAuditService, AuditService>();
 
@@ -53,6 +57,7 @@ builder.Services.AddVersionedApiExplorer(options =>
     options.SubstituteApiVersionInUrl = true;
 });
 
+
 // Swagger Configuration
 builder.Services.AddSwaggerGen(c =>
 {
@@ -60,54 +65,99 @@ builder.Services.AddSwaggerGen(c =>
     {
         Version = "1.0",
         Title = "Back End Endpoints",
-        Description = "ParkManagementSystem-MS",
-        Contact = new OpenApiContact { Name = "EylulParkSystem" }
+        Description = "ParkingManagementSystem-MS",
+        Contact = new OpenApiContact
+        {
+            Name = "ParkingManagement"
+        },
     });
-
     c.SwaggerDoc("Front-End", new OpenApiInfo
     {
+        //Version = "v1-fe",
         Title = "Front End Endpoints",
-        Description = "ParkManagementSystem-MS",
-        Contact = new OpenApiContact { Name = "EylulParkSystem" }
+        Description = "ParkingManagementSystem-MS",
+        Contact = new OpenApiContact
+        {
+            Name = "ParkingManagement"
+        },
     });
-
     c.SwaggerDoc("All", new OpenApiInfo
     {
+        //Version = "v1-all",
         Title = "Park Management System Endpoints",
-        Description = "ParkManagementSystem-MS",
-        Contact = new OpenApiContact { Name = "EylulParkSystem" }
+        Description = "ParkingManagementSystem-MS",
+        Contact = new OpenApiContact
+        {
+            Name = "ParkingManagement"
+        },
     });
 
+    c.OperationFilter<LanguageCultureHeaderParameterOperationFilter>();
+
+    c.DocInclusionPredicate((docName, apiDesc) =>
+    {
+        if (docName.Equals("All")) return true;
+
+        if (!(apiDesc.ActionDescriptor is ControllerActionDescriptor controllerActionDescriptor))
+            return true;
+
+        var hasFrontEndEndpointAttribute = controllerActionDescriptor.MethodInfo
+        .CustomAttributes
+        .Any(x => x.AttributeType.Name == nameof(FrontEndEndpointAttribute));
+
+        var hasVersioned = controllerActionDescriptor.MethodInfo
+         .CustomAttributes
+         .Any(x => x.AttributeType.Name == nameof(VersioningEndpointAttribute));
+
+        if (docName.Equals("Front-End") &&  hasFrontEndEndpointAttribute)
+        {
+            return true;
+        }
+
+        if (docName.Equals("Back-End") && !hasVersioned)
+        {
+            return true;
+        }
+
+        if (docName.Equals("Versioning") && hasVersioned)
+        {
+            return true;
+        }
+
+        return false;
+    });
+    // Set the comments path for the Swagger JSON and UI.
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
     c.IncludeXmlComments(xmlPath);
-
-    c.AddFluentValidationRules();
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        In = ParameterLocation.Header,
-        Description = "Please enter JWT with Bearer into field",
-        Name = "Authorization",
-        Type = SecuritySchemeType.ApiKey
-    });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
+    c.OperationFilter<SummaryOperationFilter>();
+    c.AddSecurityDefinition("Bearer",
+        new OpenApiSecurityScheme
         {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
+            In = ParameterLocation.Header,
+            Description = "Please enter JWT with Bearer into field",
+            Name = "Authorization",
+            Type = SecuritySchemeType.ApiKey
+        });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
                 {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = ParameterLocation.Header
-            },
-            new List<string>()
-        }
-    });
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            },
+                            Scheme = "oauth2",
+                            Name = "Bearer",
+                            In = ParameterLocation.Header,
+
+                        },
+                        new List<string>()
+                    }
+                });
+    c.AddFluentValidationRules();
 });
 
 // Autofac Dependency Injection
@@ -123,6 +173,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(builder =>
         .Where(t => t.Interface != null && t.Type.IsClass)
         .ToList()
         .ForEach(t => builder.RegisterType(t.Type).As(t.Interface));
+
 });
 
 var app = builder.Build();
