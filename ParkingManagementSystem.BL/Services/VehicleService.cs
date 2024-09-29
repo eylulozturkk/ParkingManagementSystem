@@ -11,43 +11,109 @@ namespace ParkingManagementSystem.BL.Services
 {
     public class VehicleService : IVehicleService
     {
+
+        public const string VEHICLE_ALL_KEY = "VehicleTableAll";
+        public const string PARKINNG_SPOT_VEHICLE_ALL_KEY = "ParkingSpotVehicleTableAll";
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IParkingSpotService _parkingSpotService;
+        private readonly IRedisCacheService _redisCacheService;
 
         public VehicleService(
             IMapper mapper,
             IUnitOfWork unitOfWork,
-            IParkingSpotService parkingSpotService)
+            IParkingSpotService parkingSpotService,
+            IRedisCacheService redisCacheService)
         {
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _parkingSpotService = parkingSpotService;
+            _redisCacheService = redisCacheService;
         }
 
         public async Task<VehicleResponse> GetVehicleByIdAsync(long id)
         {
-            var repository = _unitOfWork.GetRepository<Vehicle>();
-            var repoAll = await repository.GetAllAsync();
-            var response = repoAll.FirstOrDefault(p => p.Id == id && p.IsActive);
+            ICollection<Vehicle>? repo = null;
+            Vehicle response = null;
+            var cachedData = await _redisCacheService.GetValueAsync(VEHICLE_ALL_KEY);
+            if (!string.IsNullOrEmpty(cachedData))
+            {
+                //Cache bulundu
+                repo = JsonConvert.DeserializeObject<ICollection<Vehicle>>(cachedData);
+                response = repo.FirstOrDefault(p => p.Id == id && p.IsActive && !p.IsDeleted);
 
+            }
+            else
+            {
+                //Cache bulunamadı
+                var repository = _unitOfWork.GetRepository<Vehicle>();
+                var repoAll = await repository.GetAllAsync();
+                response = repoAll.FirstOrDefault(p => p.Id == id && p.IsActive && !p.IsDeleted);
+
+                if (repoAll != null)
+                {
+                    await _redisCacheService.SetValueAsync(VEHICLE_ALL_KEY, JsonConvert.SerializeObject(repoAll));
+                }
+
+            }
             return _mapper.Map<VehicleResponse>(response);
         }
 
         public async Task<VehicleResponse> GetVehicleByLicensePlateAsync(string licensePlate)
         {
-            var repository = _unitOfWork.GetRepository<Vehicle>();
-            var repoAll = await repository.GetAllAsync();
-            var response = repoAll.FirstOrDefault(p => p.LicensePlate == licensePlate && p.IsActive);
+            ICollection<Vehicle>? repo = null;
+            Vehicle response = null;
+            var cachedData = await _redisCacheService.GetValueAsync(VEHICLE_ALL_KEY);
+            if (!string.IsNullOrEmpty(cachedData))
+            {
+                //Cache bulundu
+                repo = JsonConvert.DeserializeObject<ICollection<Vehicle>>(cachedData);
+                response = repo.FirstOrDefault(p => p.LicensePlate == licensePlate && p.IsActive && !p.IsDeleted);
+
+            }
+            else
+            {
+                //Cache bulunamadı
+                var repository = _unitOfWork.GetRepository<Vehicle>();
+                var repoAll = await repository.GetAllAsync();
+                response = repoAll.FirstOrDefault(p => p.LicensePlate == licensePlate && p.IsActive && !p.IsDeleted);
+
+                if (repoAll != null)
+                {
+                    await _redisCacheService.SetValueAsync(VEHICLE_ALL_KEY, JsonConvert.SerializeObject(repoAll));
+                }
+
+            }
 
             return _mapper.Map<VehicleResponse>(response);
         }
 
         public async Task<ParkingSpotVehicleMappingResponse> GetParkingSpotVehicleMappingByVehicleIdAsync(long vehicleId)
         {
-            var repository = _unitOfWork.GetRepository<VehicleParkingSpotMapping>();
-            var repoAll = await repository.GetAllAsync();
-            var response = repoAll.FirstOrDefault(p => p.VehicleId == vehicleId && p.IsActive);
+
+            ICollection<VehicleParkingSpotMapping>? repo = null;
+            VehicleParkingSpotMapping response = null;
+            var cachedData = await _redisCacheService.GetValueAsync(PARKINNG_SPOT_VEHICLE_ALL_KEY);
+            if (!string.IsNullOrEmpty(cachedData))
+            {
+                //Cache bulundu
+                repo = JsonConvert.DeserializeObject<ICollection<VehicleParkingSpotMapping>>(cachedData);
+                response = repo.FirstOrDefault(p => p.VehicleId == vehicleId && p.IsActive && !p.IsDeleted);
+
+            }
+            else
+            {
+                //Cache bulunamadı
+                var repository = _unitOfWork.GetRepository<VehicleParkingSpotMapping>();
+                var repoAll = await repository.GetAllAsync();
+                response = repoAll.FirstOrDefault(p => p.VehicleId == vehicleId && p.IsActive && !p.IsDeleted);
+
+                if (repoAll != null)
+                {
+                    await _redisCacheService.SetValueAsync(PARKINNG_SPOT_VEHICLE_ALL_KEY, JsonConvert.SerializeObject(repoAll));
+                }
+
+            }
 
             return _mapper.Map<ParkingSpotVehicleMappingResponse>(response);
         }
@@ -55,7 +121,7 @@ namespace ParkingManagementSystem.BL.Services
         public async Task<List<ParkingSpotVehicleMappingResponse>> GetParkingSpotVehicleMappingAllByParkingSpotIdAsync(long parkingSpotId)
         {
             var repository = _unitOfWork.GetRepository<VehicleParkingSpotMapping>();
-            var repoAll = await repository.FindAllAsync((p => p.ParkingSpotId == parkingSpotId && p.IsActive));
+            var repoAll = await repository.FindAllAsync((p => p.ParkingSpotId == parkingSpotId && p.IsActive && !p.IsDeleted));
 
             return _mapper.Map<List<ParkingSpotVehicleMappingResponse>>(repoAll);
         }

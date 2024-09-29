@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 using ParkingManagementSystem.API.Swagger.CustomAttributes;
 using ParkingManagementSystem.API.Swagger.Filters;
 using ParkingManagementSystem.API.Swagger.OperationFilters;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,9 +29,16 @@ builder.Services.AddDbContext<DataContext>(options =>
         errorNumbersToAdd: null) // Belirli hata numaralarý üzerinde deneme yapar (boþ býrakýrsak tüm hatalarda yeniden dener)
     ));
 
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var configuration = builder.Configuration.GetSection("RedisSettings:ConnectionString").Value;
+    return ConnectionMultiplexer.Connect(configuration);
+});
+
 builder.Services.AddAutoMapper(typeof(ParkingManagementSystem.BL.Mapper.AutoMapperProfile));
 builder.Services.AddTransient<IUnitOfWork, UnitOfWork>();
 builder.Services.AddSingleton<IAuditService, AuditService>();
+builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
 
 // Liveness - Health Checks
 builder.Services.AddHealthChecks();
