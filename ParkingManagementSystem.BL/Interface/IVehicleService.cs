@@ -9,6 +9,8 @@ namespace ParkingManagementSystem.BL.Interface
         Task<ParkingSpotVehicleMappingResponse> GetParkingSpotVehicleMappingByVehicleIdAsync(long vehicleId);
         Task<List<ParkingSpotVehicleMappingResponse>> GetParkingSpotVehicleMappingAllByParkingSpotIdAsync(long parkingSpotId);
         Task<PriceResponse> GetTotalParkingSpotPriceVehicleIdAsync(long vehicleId);
+        Task<VehicleResponse> GetVehicleByLicensePlateAsync(string licensePlate);
+        Task<PriceResponse> GetTotalParkingSpotPriceByLicensePlateAsync(string licensePlate);
         Task<VehicleSuccessResponse> CreateVehicleAsync(VehicleRequest vehicleRequest);
         Task<ParkingSpotVehicleMappingResponse> CreateParkingSpotVehicleMappingAsync(ParkingSpotVehicleMappingRequest parkingSpotVehicleMapping);
         Task<VehicleResponse> UpdateVehicleAsync(VehicleRequest vehicleRequest);

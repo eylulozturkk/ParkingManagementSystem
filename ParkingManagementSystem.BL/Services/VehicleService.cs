@@ -34,6 +34,15 @@ namespace ParkingManagementSystem.BL.Services
             return _mapper.Map<VehicleResponse>(response);
         }
 
+        public async Task<VehicleResponse> GetVehicleByLicensePlateAsync(string licensePlate)
+        {
+            var repository = _unitOfWork.GetRepository<Vehicle>();
+            var repoAll = await repository.GetAllAsync();
+            var response = repoAll.FirstOrDefault(p => p.LicensePlate == licensePlate && p.IsActive);
+
+            return _mapper.Map<VehicleResponse>(response);
+        }
+
         public async Task<ParkingSpotVehicleMappingResponse> GetParkingSpotVehicleMappingByVehicleIdAsync(long vehicleId)
         {
             var repository = _unitOfWork.GetRepository<VehicleParkingSpotMapping>();
@@ -76,10 +85,13 @@ namespace ParkingManagementSystem.BL.Services
                 var parkingPrice = await _parkingSpotService.GetParkingSpotPriceByParkingSpotIdAsync(vehicleMapping.ParkingSpotId, vehicleParkingTime);
                 priceResponse.ParkingPrice = parkingPrice.ParkingPrice;
                 priceResponse.ParkingTime = vehicleParkingTime;
+                priceResponse.EntryTime = vehicle.EntryTime;
+                priceResponse.ExitTime = vehicle.ExitTime;
                 priceResponse.IsSuccess = true;
                 priceResponse.Message = "Park ücreti hesaplandı.";
                 var vehicleRequest = new VehicleRequest
                 {
+                    Id= vehicle.Id,
                     LicensePlate = vehicle.LicensePlate,
                     Size = vehicle.Size,
                     EntryTime = vehicle.EntryTime,
@@ -88,7 +100,8 @@ namespace ParkingManagementSystem.BL.Services
                     IsActive = false
                 };
                 var parkingSpotVehicleMappingRequest = new ParkingSpotVehicleMappingRequest
-                {
+                {   
+                    Id = vehicleMapping.Id,    
                     VehicleId = vehicleMapping.VehicleId,
                     ParkingSpotId = vehicleMapping.ParkingSpotId,
                     IsActive = false
@@ -100,14 +113,66 @@ namespace ParkingManagementSystem.BL.Services
             return(priceResponse);
         }
 
-        private async Task<bool> IsFullCapacity(long parkingSpotId)
+        public async Task<PriceResponse> GetTotalParkingSpotPriceByLicensePlateAsync(string licensePlate)
         {
-            var parkingSpotCapacity = await _parkingSpotService.GetParkingSpotByIdAsync(parkingSpotId);
+            var priceResponse = new PriceResponse();
 
+            var vehicle = await GetVehicleByLicensePlateAsync(licensePlate);
+            if (vehicle == null)
+            {
+                return new PriceResponse
+                {
+                    IsSuccess = false,
+                    Message = "Araç bulunamadı."
+                };
+            }
+
+            vehicle.ExitTime = DateTime.Now;
+
+            var vehicleParkingTime = Math.Round((vehicle.ExitTime - vehicle.EntryTime)?.TotalHours ?? 0);
+
+            var vehicleMapping = await GetParkingSpotVehicleMappingByVehicleIdAsync(vehicle.Id);
+
+            if (vehicleMapping != null)
+            {
+                var parkingPrice = await _parkingSpotService.GetParkingSpotPriceByParkingSpotIdAsync(vehicleMapping.ParkingSpotId, vehicleParkingTime);
+                priceResponse.ParkingPrice = parkingPrice.ParkingPrice;
+                priceResponse.ParkingTime = vehicleParkingTime;
+                priceResponse.EntryTime = vehicle.EntryTime;
+                priceResponse.ExitTime = vehicle.ExitTime;
+                priceResponse.IsSuccess = true;
+                priceResponse.Message = "Park ücreti hesaplandı.";
+                var vehicleRequest = new VehicleRequest
+                {
+                    Id = vehicle.Id,
+                    LicensePlate = vehicle.LicensePlate,
+                    Size = vehicle.Size,
+                    EntryTime = vehicle.EntryTime,
+                    ExitTime = vehicle.ExitTime,
+                    TotalParkingFee = priceResponse.ParkingPrice,
+                    IsActive = false
+                };
+                var parkingSpotVehicleMappingRequest = new ParkingSpotVehicleMappingRequest
+                {
+                    Id = vehicleMapping.Id,
+                    VehicleId = vehicleMapping.VehicleId,
+                    ParkingSpotId = vehicleMapping.ParkingSpotId,
+                    IsActive = false
+                };
+                _ = await UpdateVehicleAsync(vehicleRequest);
+                _ = await UpdateParkingSpotVehicleMappingAsync(parkingSpotVehicleMappingRequest);
+            }
+
+            return (priceResponse);
+        }
+
+
+        private async Task<bool> IsFullCapacity(long parkingSpotId, int maxCapacity)
+        {
             var parkingSpotVehicleMapping = await GetParkingSpotVehicleMappingAllByParkingSpotIdAsync(parkingSpotId);
             var parkingSpotVehicleMappingTotal = parkingSpotVehicleMapping.Count();
 
-            if(parkingSpotVehicleMappingTotal >= parkingSpotCapacity.MaxCapacity)
+            if(parkingSpotVehicleMappingTotal >= maxCapacity)
                 return false;
 
             return true;
@@ -116,7 +181,7 @@ namespace ParkingManagementSystem.BL.Services
         public async Task<VehicleSuccessResponse> CreateVehicleAsync(VehicleRequest vehicleRequest)
         {
             var parkingSpot = await _parkingSpotService.GetParkingSpotBySizeAsync(vehicleRequest.Size);
-            var isFullCapacity = await IsFullCapacity(parkingSpot.Id);
+            var isFullCapacity = await IsFullCapacity(parkingSpot.Id, parkingSpot.MaxCapacity);
 
             if (!isFullCapacity)
                 return new VehicleSuccessResponse
@@ -144,6 +209,14 @@ namespace ParkingManagementSystem.BL.Services
 
             var vehicleResponse = _mapper.Map<VehicleResponse>(response);
 
+            var parkingSpotVehicleMappingRequest = new ParkingSpotVehicleMappingRequest
+            {
+                VehicleId = vehicleResponse.Id,
+                ParkingSpotId = parkingSpot.Id,
+                IsActive = false
+            };
+            _ = await CreateParkingSpotVehicleMappingAsync(parkingSpotVehicleMappingRequest);
+
             var vehicleSuccessResponse = new VehicleSuccessResponse
             {
                 VehicleResponse = vehicleResponse,
@@ -159,7 +232,7 @@ namespace ParkingManagementSystem.BL.Services
         {
             var repository = _unitOfWork.GetRepository<VehicleParkingSpotMapping>();
 
-            var entity = _mapper.Map<VehicleParkingSpotMapping>(repository);
+            var entity = _mapper.Map<VehicleParkingSpotMapping>(parkingSpotVehicleMapping);
 
             entity.VehicleId = parkingSpotVehicleMapping.VehicleId;
             entity.ParkingSpotId = parkingSpotVehicleMapping.ParkingSpotId;
@@ -220,6 +293,7 @@ namespace ParkingManagementSystem.BL.Services
             if (vehicle == null)
                 throw new ArgumentException(nameof(vehicle));
 
+            vehicle.Id = id;
             vehicle.UpdatedAt = DateTime.Now;
             vehicle.DeletedAt = DateTime.Now;
             vehicle.IsDeleted = true; 
@@ -242,6 +316,7 @@ namespace ParkingManagementSystem.BL.Services
             if (vehicleParkingSpotMapping == null)
                 throw new ArgumentException(nameof(vehicleParkingSpotMapping));
 
+            vehicleParkingSpotMapping.Id = id;
             vehicleParkingSpotMapping.UpdatedAt = DateTime.Now;
             vehicleParkingSpotMapping.DeletedAt = DateTime.Now;
             vehicleParkingSpotMapping.IsDeleted = true;

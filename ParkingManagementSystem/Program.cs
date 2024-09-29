@@ -140,7 +140,7 @@ builder.Services.AddSwaggerGen(c =>
             Type = SecuritySchemeType.ApiKey
         });
     c.AddSecurityRequirement(new OpenApiSecurityRequirement()
-                {
+    {
                     {
                         new OpenApiSecurityScheme
                         {
@@ -156,7 +156,7 @@ builder.Services.AddSwaggerGen(c =>
                         },
                         new List<string>()
                     }
-                });
+    });
     c.AddFluentValidationRules();
 });
 

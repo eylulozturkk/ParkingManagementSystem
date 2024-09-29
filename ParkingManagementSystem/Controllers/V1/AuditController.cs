@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ParkingManagementSystem.BL.Dto.Request;
 using ParkingManagementSystem.BL.Interface;
 
-namespace ParkingManagementSystem.API.Controllers
+namespace ParkingManagementSystem.API.Controllers.V1
 {
     [ApiVersion("1.0")]
     [Route("ParkingManagementSystem/api/[controller]")]

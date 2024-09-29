@@ -25,6 +25,7 @@ namespace ParkingManagementSystem.BL.Mapper
             #endregion
 
             #region PriceParkingSpotMappings
+
             CreateMap<PriceParkingSpotMapping, ParkingSpotPriceRequest>().ReverseMap();
             CreateMap<PriceParkingSpotMapping, ParkingSpotPriceResponse>().ReverseMap();
 

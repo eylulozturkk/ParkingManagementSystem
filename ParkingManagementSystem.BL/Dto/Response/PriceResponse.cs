@@ -10,5 +10,7 @@ namespace ParkingManagementSystem.BL.Dto.Response
     {
         public decimal ParkingPrice { get; set; }
         public double ParkingTime { get; set; }
+        public DateTime EntryTime { get; set; }
+        public DateTime? ExitTime { get; set; }
     }
 }

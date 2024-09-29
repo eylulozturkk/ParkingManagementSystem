@@ -7,13 +7,13 @@ using ParkingManagementSystem.BL.Dto.Response;
 using ParkingManagementSystem.BL.Interface;
 using ParkingManagementSystem.DAL.Entity;
 
-namespace ParkingManagementSystem.API.Controllers
+namespace ParkingManagementSystem.API.Controllers.V1
 {
     [ApiVersion("1.0")]
     [Route("ParkingManagementSystem/api/[controller]")]
     [ApiController]
     [EnableCors("Phantom-policy")]
-    public class ParkingManagementController: ControllerBase
+    public class ParkingManagementSystemController : ControllerBase
     {
         #region Fields
         private readonly IVehicleService _vehicleService;
@@ -22,7 +22,7 @@ namespace ParkingManagementSystem.API.Controllers
         #endregion
 
         #region Ctor
-        public ParkingManagementController(IVehicleService vehicleService, IParkingSpotService parkingSpotService)
+        public ParkingManagementSystemController(IVehicleService vehicleService, IParkingSpotService parkingSpotService)
         {
             _parkingSpotService = parkingSpotService;
             _vehicleService = vehicleService;
@@ -35,7 +35,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// Get parkingspot All [Returns ParkingSpotResponse]
         /// </summary>
         /// <returns></returns>
-        [HttpGet]
+        [HttpGet("get-parking-spot-all")]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(List<ParkingSpotResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetParkingSpotAll()
@@ -58,7 +58,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpGet("id/{id}")]
+        [HttpGet("get-parking-spot-id/{id}")]
         [ProducesResponseType(typeof(ParkingSpotResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetParkingSpotById(long id)
         {
@@ -80,7 +80,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpGet("id/{id}")]
+        [HttpGet("get-vehicle-id/{id}")]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(VehicleResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetVehicleById(long id)
@@ -104,7 +104,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// Get Parking Spot Price All [Returns ParkingSpotPriceResponse]
         /// </summary>
         /// <returns></returns>
-        [HttpGet]
+        [HttpGet("get-parking-spot-price-all")]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(List<ParkingSpotPriceResponse>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetParkingSpotPriceAll()
@@ -128,14 +128,14 @@ namespace ParkingManagementSystem.API.Controllers
         /// Get Total Parking Spot Price By Vehicle Id [Returns PriceResponse]
         /// </summary>
         /// <returns></returns>
-        [HttpGet("id/{id}")]
+        [HttpGet("get-total-price-vehicleId/{vehicleId}")]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(PriceResponse), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetTotalParkingSpotPriceByVehicleId(long id)
+        public async Task<IActionResult> GetTotalParkingSpotPriceByVehicleId(long vehicleId)
         {
             try
             {
-                var response = await _vehicleService.GetTotalParkingSpotPriceVehicleIdAsync(id);
+                var response = await _vehicleService.GetTotalParkingSpotPriceVehicleIdAsync(vehicleId);
                 return response.IsSuccess
                                 ? Ok(response)
                                 : StatusCode(StatusCodes.Status400BadRequest, "get işlemi sırasında bir hata oluştu");
@@ -149,12 +149,39 @@ namespace ParkingManagementSystem.API.Controllers
             }
         }
 
+
+        /// <summary>
+        /// Get Total Parking Spot Price By license Plate [Returns PriceResponse]
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("get-total-price-licensePlate/{licensePlate}")]
+        [MapToApiVersion("1.0")]
+        [ProducesResponseType(typeof(PriceResponse), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetTotalParkingSpotPriceByLicensePlate(string licensePlate)
+        {
+            try
+            {
+                var response = await _vehicleService.GetTotalParkingSpotPriceByLicensePlateAsync(licensePlate);
+                return response.IsSuccess
+                                ? Ok(response)
+                                : StatusCode(StatusCodes.Status400BadRequest, "get işlemi sırasında bir hata oluştu");
+
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
+
+            }
+        }
+
+
         /// <summary>
         /// Create Parking Spot by ParkingSpotRequest
         /// </summary>
         /// <param name="parkingSpotRequest"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpPost("create-parking-spot")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(ParkingSpotResponse), StatusCodes.Status200OK)]
@@ -180,7 +207,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="vehicleRequest"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpPost("create-vehicle")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(VehicleSuccessResponse), StatusCodes.Status200OK)]
@@ -207,7 +234,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="parkingSpotPriceRequest"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpPost("create-parking-spot-price")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(ParkingSpotPriceResponse), StatusCodes.Status200OK)]
@@ -235,7 +262,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="parkingSpotVehicleMappingRequest"></param>
         /// <returns></returns>
-        [HttpPost]
+        [HttpPost("create-parking-vehicle-mapping")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(ParkingSpotVehicleMappingResponse), StatusCodes.Status200OK)]
@@ -261,7 +288,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="parkingSpotRequest"></param>
         /// <returns></returns>
-        [HttpPut]
+        [HttpPut("update-parking-spot")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(ParkingSpotResponse), StatusCodes.Status200OK)]
@@ -287,7 +314,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="vehicleRequest"></param>
         /// <returns></returns>
-        [HttpPut]
+        [HttpPut("update-vehicle")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(VehicleResponse), StatusCodes.Status200OK)]
@@ -313,7 +340,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="parkingSpotPriceRequest"></param>
         /// <returns></returns>
-        [HttpPut]
+        [HttpPut("update-parking-spot-price")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(ParkingSpotPriceResponse), StatusCodes.Status200OK)]
@@ -340,7 +367,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="parkingSpotVehicleMappingRequest"></param>
         /// <returns></returns>
-        [HttpPut]
+        [HttpPut("update-parking-spot-vehicle-mapping")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(ParkingSpotVehicleMappingResponse), StatusCodes.Status200OK)]
@@ -367,7 +394,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpDelete("id/{id}")]
+        [HttpDelete("delete-parking-spot-id/{id}")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
@@ -393,7 +420,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpDelete("id/{id}")]
+        [HttpDelete("delete-vehicle-id/{id}")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
@@ -418,7 +445,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpDelete("id/{id}")]
+        [HttpDelete("delete-parking-spot-price-id/{id}")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
@@ -444,7 +471,7 @@ namespace ParkingManagementSystem.API.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        [HttpDelete("id/{id}")]
+        [HttpDelete("delete-parking-spot-vehicle-mapping-id/{id}")]
         [ValidateModel]
         [MapToApiVersion("1.0")]
         [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]

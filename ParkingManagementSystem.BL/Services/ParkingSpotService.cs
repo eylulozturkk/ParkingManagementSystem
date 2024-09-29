@@ -95,7 +95,7 @@ namespace ParkingManagementSystem.BL.Services
         {
             var repository = _unitOfWork.GetRepository<PriceParkingSpotMapping>();
 
-            var entity = _mapper.Map<PriceParkingSpotMapping>(repository);
+            var entity = _mapper.Map<PriceParkingSpotMapping>(parkingSpotPriceRequest);
 
             entity.CreatedAt = DateTime.Now;
             entity.IsActive = true;
@@ -155,6 +155,7 @@ namespace ParkingManagementSystem.BL.Services
             if (parkingSpot == null)
                 throw new ArgumentException(nameof(parkingSpot));
 
+            parkingSpot.Id = id;
             parkingSpot.UpdatedAt = DateTime.Now;
             parkingSpot.DeletedAt = DateTime.Now;
             parkingSpot.IsDeleted = true;
@@ -177,6 +178,7 @@ namespace ParkingManagementSystem.BL.Services
             if (priceParkingSpotMapping == null)
                 throw new ArgumentException(nameof(priceParkingSpotMapping));
 
+            priceParkingSpotMapping.Id = id;
             priceParkingSpotMapping.UpdatedAt = DateTime.Now;
             priceParkingSpotMapping.DeletedAt = DateTime.Now;
             priceParkingSpotMapping.IsDeleted = true;
