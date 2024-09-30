@@ -38,6 +38,10 @@ namespace ParkingManagementSystem.BL.Mapper
 
             CreateMap<ParkingSpotRequest, ParkingSpotResponse>().ReverseMap();
             #endregion
+
+            #region Log
+            CreateMap<Log, LogRequest>().ReverseMap();
+            #endregion
         }
     }
 }

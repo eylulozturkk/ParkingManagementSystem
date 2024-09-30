@@ -40,6 +40,8 @@ namespace ParkingManagementSystem.DAL.Context
         public DbSet<ParkingSpot> ParkingSpots { get; set; }
         public DbSet<VehicleParkingSpotMapping> VehicleParkingSpotMappings { get; set; }
         public DbSet<PriceParkingSpotMapping> PriceParkingSpotMappings { get; set; }
+        public DbSet<Log> Logs { get; set; }
+
 
         #endregion
 

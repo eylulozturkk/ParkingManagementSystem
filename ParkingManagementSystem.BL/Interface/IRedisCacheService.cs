@@ -10,7 +10,6 @@ namespace ParkingManagementSystem.BL.Interface
     {
         Task<string> GetValueAsync(string key);
         Task<bool> SetValueAsync(string key, string value);
-        Task<IDictionary<string, string>> GetAllAsync();
         Task RemoveValueAsync(string key);
         Task ClearCache();
 

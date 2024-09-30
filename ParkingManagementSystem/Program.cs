@@ -44,7 +44,7 @@ builder.Services.AddSingleton<IRedisCacheService, RedisCacheService>();
 builder.Services.AddHealthChecks();
 
 // CORS
-builder.Services.AddCors(o => o.AddPolicy("Phantom-policy", b =>
+builder.Services.AddCors(o => o.AddPolicy("ParkingManagementSystem-policy", b =>
 {
     b.AllowAnyOrigin()
      .AllowAnyMethod()
@@ -204,7 +204,7 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 // CORS
-app.UseCors("Phantom-policy");
+app.UseCors("ParkingManagementSystem-policy");
 
 app.UseCookiePolicy(new CookiePolicyOptions
 {

@@ -5,27 +5,37 @@ using NotificationService.BL.Attributes;
 using ParkingManagementSystem.BL.Dto.Request;
 using ParkingManagementSystem.BL.Dto.Response;
 using ParkingManagementSystem.BL.Interface;
+using ParkingManagementSystem.BL.Services;
 using ParkingManagementSystem.DAL.Entity;
+using ParkingManagementSystem.DAL.Enums;
+using ILogger = ParkingManagementSystem.BL.Interface.ILogger;
 
 namespace ParkingManagementSystem.API.Controllers.V1
 {
     [ApiVersion("1.0")]
     [Route("ParkingManagementSystem/api/[controller]")]
     [ApiController]
-    [EnableCors("Phantom-policy")]
+    [EnableCors("ParkingManagementSystem-policy")]
     public class ParkingManagementSystemController : ControllerBase
     {
         #region Fields
         private readonly IVehicleService _vehicleService;
         private readonly IParkingSpotService _parkingSpotService;
+        private readonly ILogger _logger;
+        private readonly IRedisCacheService _redisCacheService;
 
         #endregion
 
         #region Ctor
-        public ParkingManagementSystemController(IVehicleService vehicleService, IParkingSpotService parkingSpotService)
+        public ParkingManagementSystemController(IVehicleService vehicleService,
+            IParkingSpotService parkingSpotService, 
+            BL.Interface.ILogger logger,
+            IRedisCacheService redisCacheService)
         {
             _parkingSpotService = parkingSpotService;
             _vehicleService = vehicleService;
+            _logger = logger;
+            _redisCacheService = redisCacheService;
         }
         #endregion
 
@@ -49,6 +59,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Get | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest,ex.Message);
             }
         }
@@ -71,6 +82,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Get | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
             }
         }
@@ -95,6 +107,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Get | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -119,6 +132,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Get | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -144,6 +158,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Get | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -170,6 +185,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Get | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -197,6 +213,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Create | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -224,6 +241,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Create | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -251,6 +269,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Create | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -277,6 +296,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Create | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -304,6 +324,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Update | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -330,6 +351,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Update | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -356,6 +378,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Update | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -383,6 +406,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Update | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -410,6 +434,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Delete | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -435,6 +460,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Delete | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -460,6 +486,7 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Delete | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
@@ -486,9 +513,32 @@ namespace ParkingManagementSystem.API.Controllers.V1
             }
             catch (Exception ex)
             {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | Delete | General Error", ex.Message);
                 return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
 
             }
+        }
+
+        /// <summary>
+        /// Reset cache
+        /// </summary>
+        /// <returns></returns>
+        [MapToApiVersion("1.0")]
+        [HttpPost("clear-cache")]
+        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+        public IActionResult ClearCache()
+        {
+            try
+            {
+                _ = _redisCacheService.ClearCache();
+                return Ok(true);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.InsertLogAsync(LogLevelType.Error, "ParkingManagementSystemController | ClearCache | InvalidOperationException", ex.Message);
+                return StatusCode(StatusCodes.Status400BadRequest, ex.Message);
+            }
+
         }
 
         #endregion

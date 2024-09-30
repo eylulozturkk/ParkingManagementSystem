@@ -11,45 +11,64 @@ namespace ParkingManagementSystem.BL.Services
 {
     public class ParkingSpotService : IParkingSpotService
     {
+        #region fields
+
         public const string PARKINNG_SPOT_ALL_KEY = "ParkingSpotTableAll";
         public const string PARKINNG_SPOT_PRICE_ALL_KEY = "ParkingSpotPriceTableAll";
 
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IRedisCacheService _redisCacheService;
+        private readonly ILogger _logger;
+
+        #endregion
+
+        #region ctor
 
         public ParkingSpotService(
             IMapper mapper,
             IUnitOfWork unitOfWork,
-            IRedisCacheService redisCacheService)
+            IRedisCacheService redisCacheService,
+            ILogger logger)
         {
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _redisCacheService = redisCacheService;
+            _logger = logger;
         }
+
+        #endregion
+
+        #region Methods
 
         public async Task<List<ParkingSpotResponse>> GetParkingSpotAllAsync()
         {
             ICollection<ParkingSpot>? repo = null;
             var cachedData = await _redisCacheService.GetValueAsync(PARKINNG_SPOT_ALL_KEY);
 
-            if(!string.IsNullOrEmpty(cachedData)) 
+            if (!string.IsNullOrEmpty(cachedData))
             {
-                //Cache bulundu
+                // Cache bulundu
                 repo = JsonConvert.DeserializeObject<ICollection<ParkingSpot>>(cachedData);
             }
             else
             {
-                //Cache bulunamadı
+                // Cache bulunamadı
                 var repository = _unitOfWork.GetRepository<ParkingSpot>();
                 repo = await repository.GetAllAsync();
 
-                if (repo != null)
+                if (repo != null && repo.Any())
                 {
                     await _redisCacheService.SetValueAsync(PARKINNG_SPOT_ALL_KEY, JsonConvert.SerializeObject(repo));
                 }
             }
-           
+
+            if (repo == null || !repo.Any())
+            {
+                throw new InvalidOperationException("Parking spots not found.");
+            }
+
+            _logger.InsertLogAsync(LogLevelType.Information, "ParkingSpotService | GetParkingSpotAllAsync", $"ParkingSpotRepo: {JsonConvert.SerializeObject(repo)}");
             return _mapper.Map<List<ParkingSpotResponse>>(repo);
         }
 
@@ -59,113 +78,133 @@ namespace ParkingManagementSystem.BL.Services
             var cachedData = await _redisCacheService.GetValueAsync(PARKINNG_SPOT_PRICE_ALL_KEY);
             if (!string.IsNullOrEmpty(cachedData))
             {
-                //Cache bulundu
+                // Cache bulundu
                 repo = JsonConvert.DeserializeObject<ICollection<PriceParkingSpotMapping>>(cachedData);
             }
             else
             {
-                //Cache bulunamadı
+                // Cache bulunamadı
                 var repository = _unitOfWork.GetRepository<PriceParkingSpotMapping>();
                 repo = await repository.GetAllAsync();
 
-                if (repo != null)
+                if (repo != null && repo.Any())
                 {
                     await _redisCacheService.SetValueAsync(PARKINNG_SPOT_PRICE_ALL_KEY, JsonConvert.SerializeObject(repo));
                 }
-
             }
 
+            if (repo == null || !repo.Any())
+            {
+                throw new InvalidOperationException("Parking spot prices not found.");
+            }
+
+            _logger.InsertLogAsync(LogLevelType.Information, "ParkingSpotService | GetParkingSpotPriceAllAsync", $"ParkingSpotPriceRepo: {JsonConvert.SerializeObject(repo)}");
             return _mapper.Map<List<ParkingSpotPriceResponse>>(repo);
         }
 
         public async Task<ParkingSpotResponse> GetParkingSpotByIdAsync(long id)
         {
             ICollection<ParkingSpot>? repo = null;
-            ParkingSpot response = null;
+            ParkingSpot? response = null;
             var cachedData = await _redisCacheService.GetValueAsync(PARKINNG_SPOT_ALL_KEY);
             if (!string.IsNullOrEmpty(cachedData))
             {
-                //Cache bulundu
+                // Cache bulundu
                 repo = JsonConvert.DeserializeObject<ICollection<ParkingSpot>>(cachedData);
-                response = repo.FirstOrDefault(p => p.Id == id && p.IsActive && !p.IsDeleted);
-
+                response = repo?.FirstOrDefault(p => p.Id == id && p.IsActive && !p.IsDeleted);
             }
             else
             {
-                //Cache bulunamadı
-
+                // Cache bulunamadı
                 var repository = _unitOfWork.GetRepository<ParkingSpot>();
                 var repoAll = await repository.GetAllAsync();
-                response = repoAll.FirstOrDefault(p => p.Id == id && p.IsActive && !p.IsDeleted);
+                response = repoAll?.FirstOrDefault(p => p.Id == id && p.IsActive && !p.IsDeleted);
 
-                if (repoAll != null)
+                if (repoAll != null && repoAll.Any())
                 {
                     await _redisCacheService.SetValueAsync(PARKINNG_SPOT_ALL_KEY, JsonConvert.SerializeObject(repoAll));
                 }
-
             }
 
+            if (response == null)
+            {
+                throw new InvalidOperationException($"Parking spot with id {id} not found.");
+            }
+
+            _logger.InsertLogAsync(LogLevelType.Information, "ParkingSpotService | GetParkingSpotByIdAsync", $"ParkingSpot: {JsonConvert.SerializeObject(response)} RequestId: {id}");
             return _mapper.Map<ParkingSpotResponse>(response);
         }
 
         public async Task<ParkingSpotResponse> GetParkingSpotBySizeAsync(VehicleSizeType vehicleSizeType)
         {
             ICollection<ParkingSpot>? repo = null;
-            ParkingSpot response = null;
+            ParkingSpot? response = null;
             var cachedData = await _redisCacheService.GetValueAsync(PARKINNG_SPOT_ALL_KEY);
             if (!string.IsNullOrEmpty(cachedData))
             {
-                //Cache bulundu
+                // Cache bulundu
                 repo = JsonConvert.DeserializeObject<ICollection<ParkingSpot>>(cachedData);
-                response = repo.FirstOrDefault(p => p.Size == vehicleSizeType && p.IsActive && !p.IsDeleted);
+                response = repo?.FirstOrDefault(p => p.Size == vehicleSizeType && p.IsActive && !p.IsDeleted);
             }
             else
             {
-                //Cache bulunamadı
-
+                // Cache bulunamadı
                 var repository = _unitOfWork.GetRepository<ParkingSpot>();
                 var repoAll = await repository.GetAllAsync();
-                response = repoAll.FirstOrDefault(p => p.Size == vehicleSizeType && p.IsActive && !p.IsDeleted);
-                if (repoAll != null)
+                response = repoAll?.FirstOrDefault(p => p.Size == vehicleSizeType && p.IsActive && !p.IsDeleted);
+
+                if (repoAll != null && repoAll.Any())
                 {
                     await _redisCacheService.SetValueAsync(PARKINNG_SPOT_ALL_KEY, JsonConvert.SerializeObject(repoAll));
                 }
             }
 
+            if (response == null)
+            {
+                throw new InvalidOperationException($"Parking spot with size {vehicleSizeType} not found.");
+            }
+
+            _logger.InsertLogAsync(LogLevelType.Information, "ParkingSpotService | GetParkingSpotBySizeAsync", $"ParkingSpot: {JsonConvert.SerializeObject(response)} RequestVehicleSize: {vehicleSizeType}");
             return _mapper.Map<ParkingSpotResponse>(response);
         }
 
         public async Task<ParkingSpotPriceResponse> GetParkingSpotPriceByParkingSpotIdAsync(long parkingSpotId, double time)
         {
-
             ICollection<PriceParkingSpotMapping>? repo = null;
-            PriceParkingSpotMapping response = null;
+            PriceParkingSpotMapping? response = null;
             var cachedData = await _redisCacheService.GetValueAsync(PARKINNG_SPOT_PRICE_ALL_KEY);
             if (!string.IsNullOrEmpty(cachedData))
             {
-                //Cache bulundu
+                // Cache bulundu
                 repo = JsonConvert.DeserializeObject<ICollection<PriceParkingSpotMapping>>(cachedData);
-                response = repo.FirstOrDefault(p => p.ParkingSpotId == parkingSpotId && p.IsActive && time >= p.ParkingMinTime && time <= p.ParkingMaxTime && !p.IsDeleted);
+                response = repo?.FirstOrDefault(p => p.ParkingSpotId == parkingSpotId && p.IsActive && time >= p.ParkingMinTime && time <= p.ParkingMaxTime && !p.IsDeleted);
             }
             else
             {
-                //Cache bulunamadı
+                // Cache bulunamadı
                 var repository = _unitOfWork.GetRepository<PriceParkingSpotMapping>();
                 var repoAll = await repository.GetAllAsync();
-                response = repoAll.FirstOrDefault(p => p.ParkingSpotId == parkingSpotId && p.IsActive && time >= p.ParkingMinTime && time <= p.ParkingMaxTime && !p.IsDeleted);
+                response = repoAll?.FirstOrDefault(p => p.ParkingSpotId == parkingSpotId && p.IsActive && time >= p.ParkingMinTime && time <= p.ParkingMaxTime && !p.IsDeleted);
 
-                if (repoAll != null)
+                if (repoAll != null && repoAll.Any())
                 {
                     await _redisCacheService.SetValueAsync(PARKINNG_SPOT_PRICE_ALL_KEY, JsonConvert.SerializeObject(repoAll));
                 }
-
             }
 
+            if (response == null)
+            {
+                throw new InvalidOperationException($"Price for parking spot with id {parkingSpotId} and time {time} not found.");
+            }
+
+            _logger.InsertLogAsync(LogLevelType.Information, "ParkingSpotService | GetParkingSpotPriceByParkingSpotIdAsync", $"ParkingSpotPrice: {JsonConvert.SerializeObject(response)} RequestParkingSpotId: {parkingSpotId} Time: {time}");
             return _mapper.Map<ParkingSpotPriceResponse>(response);
         }
 
         public async Task<ParkingSpotResponse> CreateParkingSpotAsync(ParkingSpotRequest parkingSpotRequest)
         {
+            if (parkingSpotRequest == null)
+                throw new ArgumentNullException(nameof(parkingSpotRequest));
 
             var repository = _unitOfWork.GetRepository<ParkingSpot>();
 
@@ -180,31 +219,48 @@ namespace ParkingManagementSystem.BL.Services
 
             var response = await repository.AddAsync(entity);
 
+            if (response == null)
+            {
+                throw new InvalidOperationException("Failed to create parking spot.");
+            }
+
             await _unitOfWork.SaveChangesAsync();
 
-            return _mapper.Map<ParkingSpotResponse>(response);
+            await _redisCacheService.RemoveValueAsync(PARKINNG_SPOT_ALL_KEY);
 
+            return _mapper.Map<ParkingSpotResponse>(response);
         }
 
         public async Task<ParkingSpotPriceResponse> CreateParkingSpotPriceAsync(ParkingSpotPriceRequest parkingSpotPriceRequest)
         {
+            if (parkingSpotPriceRequest == null)
+                throw new ArgumentNullException(nameof(parkingSpotPriceRequest));
+
             var repository = _unitOfWork.GetRepository<PriceParkingSpotMapping>();
 
             var entity = _mapper.Map<PriceParkingSpotMapping>(parkingSpotPriceRequest);
 
             entity.CreatedAt = DateTime.Now;
+            entity.CreatedById = parkingSpotPriceRequest.UserId;
             entity.IsActive = true;
+            entity.IsDeleted = false;
             entity.ParkingSpotId = parkingSpotPriceRequest.ParkingSpotId;
-            entity.ParkingPrice = parkingSpotPriceRequest.ParkingPrice;
             entity.ParkingMinTime = parkingSpotPriceRequest.ParkingMinTime;
             entity.ParkingMaxTime = parkingSpotPriceRequest.ParkingMaxTime;
+            entity.ParkingPrice = parkingSpotPriceRequest.ParkingPrice;
 
             var response = await repository.AddAsync(entity);
 
+            if (response == null)
+            {
+                throw new InvalidOperationException("Failed to create parking spot price.");
+            }
+
             await _unitOfWork.SaveChangesAsync();
 
-            return _mapper.Map<ParkingSpotPriceResponse>(response);
+            await _redisCacheService.RemoveValueAsync(PARKINNG_SPOT_PRICE_ALL_KEY);
 
+            return _mapper.Map<ParkingSpotPriceResponse>(response);
         }
 
         public async Task<ParkingSpotResponse> UpdateParkingSpotAsync(ParkingSpotRequest parkingSpotRequest)
@@ -219,6 +275,8 @@ namespace ParkingManagementSystem.BL.Services
             var response = await repository.UpdateAsync(entity);
 
             await _unitOfWork.SaveChangesAsync();
+
+            await _redisCacheService.RemoveValueAsync(PARKINNG_SPOT_ALL_KEY);
 
             return _mapper.Map<ParkingSpotResponse>(response);
 
@@ -236,6 +294,8 @@ namespace ParkingManagementSystem.BL.Services
             var response = await repository.UpdateAsync(entity);
 
             await _unitOfWork.SaveChangesAsync();
+
+            await _redisCacheService.RemoveValueAsync(PARKINNG_SPOT_PRICE_ALL_KEY);
 
             return _mapper.Map<ParkingSpotPriceResponse>(response);
 
@@ -260,6 +320,8 @@ namespace ParkingManagementSystem.BL.Services
 
             var result = await _unitOfWork.SaveChangesAsync();
 
+            await _redisCacheService.RemoveValueAsync(PARKINNG_SPOT_ALL_KEY);
+
             return result > 0;
         }
 
@@ -283,7 +345,11 @@ namespace ParkingManagementSystem.BL.Services
 
             var result = await _unitOfWork.SaveChangesAsync();
 
+            await _redisCacheService.RemoveValueAsync(PARKINNG_SPOT_PRICE_ALL_KEY);
+
             return result > 0;
         }
+
+        #endregion
     }
 }

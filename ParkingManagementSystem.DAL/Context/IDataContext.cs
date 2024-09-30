@@ -14,6 +14,8 @@ namespace ParkingManagementSystem.DAL.Context
         DbSet<ParkingSpot> ParkingSpots { get; set; }
         DbSet<PriceParkingSpotMapping> PriceParkingSpotMappings { get; set; }
         DbSet<VehicleParkingSpotMapping> VehicleParkingSpotMappings { get; set; }
+        DbSet<Log> Logs { get; set; }
+
 
     }
 }

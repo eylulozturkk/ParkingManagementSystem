@@ -31,28 +31,15 @@ namespace ParkingManagementSystem.BL.Services
             foreach (var redisEndpoint in redisEndpoints)
             {
                 var redisServer = _redisConnection.GetServer(redisEndpoint);
-                redisServer.FlushAllDatabases();
-            }
-        }
+                // Redis'teki tüm anahtarları getir
+                var keys = redisServer.Keys(pattern: "*").ToArray();
 
-        public async Task<IDictionary<string, string>> GetAllAsync()
-        {
-            var allKeysValues = new Dictionary<string, string>();
-            var redisEndpoints = _redisConnection.GetEndPoints(true);
-
-            foreach (var redisEndpoint in redisEndpoints)
-            {
-                var redisServer = _redisConnection.GetServer(redisEndpoint);
-                var keys = redisServer.Keys();
-
+                // Her bir anahtarı sil
                 foreach (var key in keys)
                 {
-                    string value = await _cache.StringGetAsync(key);
-                    allKeysValues[key.ToString()] = value;
+                    await _cache.KeyDeleteAsync(key);
                 }
             }
-
-            return allKeysValues;
         }
 
         public async Task<string> GetValueAsync(string key)
